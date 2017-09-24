@@ -1,4 +1,4 @@
-var readings
+// var readings
 
 $.ajax({
   type: 'GET',
@@ -6,10 +6,14 @@ $.ajax({
   dataType: 'json',
   success: function (data) {
     // this is async; nest d3 inside
-    readings = data
+    // readings = data
     var centralData = data.filter(function (reading) {
       return reading.region === 'CE'
     })
+
+    // var southData = data.filter(function (reading) {
+    //   return reading.region === 'SO'
+    // })
 
     // set the dimensions and margins of the graph
     var margin = { top: 20, right: 20, bottom: 30, left: 50 },
@@ -36,6 +40,12 @@ $.ajax({
       reading.timestamp = formatTime(reading.timestamp.slice(0, -5).toString())
       reading.concentration = +reading.concentration
     }
+    //
+    // for (var i = 0; i < southData.length; i++) {
+    //   var reading = southData[i]
+    //   reading.timestamp = formatTime(reading.timestamp.slice(0, -5).toString())
+    //   reading.concentration = +reading.concentration
+    // }
 
     // define the line
     var valueline = d3.line()
@@ -43,7 +53,7 @@ $.ajax({
                       .y(function (d) { return y(d.concentration) })
 
     // Scale the range of the data
-    x.domain(d3.extent(centralData, function (d) { return d.timestamp }))
+    x.domain(d3.extent(centralData, function (d) { return d.timestamp })).nice(d3.timeDay, 1)
     y.domain([0, d3.max(centralData, function (d) { return d.concentration })])
 
     // Add the valueline path.
@@ -52,10 +62,16 @@ $.ajax({
         .attr('class', 'line')
         .attr('d', valueline)
 
+        // svg.append('path')
+        //     .data([southData])
+        //     .attr('class', 'line')
+        //     .attr('d', valueline)
+
     // Add the X Axis
     svg.append('g')
         .attr('transform', 'translate(0,' + height + ')')
-        .call(d3.axisBottom(x))
+        .call(d3.axisBottom(x).ticks(d3.timeDay.every(1)))
+
 
     // Add the Y Axis
     svg.append('g')
