@@ -1,3 +1,5 @@
+/* globals d3 $ getRegionalData */
+
 // add helpers
 var imported = document.createElement('script')
 imported.src = 'assets/helpers/getRegionalData.js'
@@ -21,9 +23,9 @@ $.ajax({
     var dataset = data
 
     // set the dimensions and margins of the graph
-    var margin = { top: 20, right: 20, bottom: 30, left: 50 },
-      width = 960 - margin.left - margin.right,
-      height = 500 - margin.top - margin.bottom
+    var margin = { top: 20, right: 20, bottom: 30, left: 50 }
+    var width = 960 - margin.left - margin.right
+    var height = 500 - margin.top - margin.bottom
 
     var formatTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')
 
@@ -40,10 +42,11 @@ $.ajax({
 
     // create buttons
 
-    for (var i = 0; i < regions.length; i++) {
-      d3.select('body').append('button').text(regionDictionary[regions[i]])
-        .attr('value', regions[i])
-        .attr('id', regions[i])
+    for (var j = 0; j < regions.length; j++) {
+      d3.select('body').append('button').text(regionDictionary[regions[j]])
+        .attr('value', regions[j])
+        .attr('id', regions[j])
+        .data([getRegionalData(dataset, regions[j])])
     }
 
     // draw chart
@@ -57,6 +60,15 @@ $.ajax({
               .append('g')
               .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 
+  // add title to chart
+  svg.append("text")
+        .attr("x", (width / 2))
+        .attr("y", 0)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .style("text-decoration", "underline")
+        .text("1-hour PM2.5 concentrations in Singapore");
+
   // define the line
       var valueline = d3.line()
                     .x(function (d) { return x(d.timestamp) })
@@ -64,7 +76,7 @@ $.ajax({
 
   // Scale the range of the data
       x.domain(d3.extent(dataset, function (d) { return d.timestamp })).nice(d3.timeDay, 1)
-      y.domain([0, d3.max(dataset, function (d) { return d.concentration })]) // make this nice
+      y.domain([0, d3.max(dataset, function (d) { return d.concentration })]).nice() // make this nice
 
   // Add the valueline path.
       svg.append('path')
@@ -84,8 +96,8 @@ $.ajax({
       .call(d3.axisLeft(y))
 
       for (var i = 0; i < regions.length; i++) {
-        $('#' + regions[i]).on('click', function (e) {
-          d3.select('path').attr('d', valueline(getRegionalData(dataset, e.currentTarget.value)))
+        d3.select('#' + regions[i]).on('click', function (datum) {
+          d3.select('path').attr('d', valueline(datum))
         })
       }
     }
@@ -93,7 +105,7 @@ $.ajax({
     drawChart()
 
     // make a circle
-    function drawCircles() {
+    function drawCircles () {
 
     }
   }
