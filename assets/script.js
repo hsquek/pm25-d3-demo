@@ -2,7 +2,7 @@
 
 // add helpers
 var imported = document.createElement('script')
-imported.src = 'assets/helpers/getRegionalData.js'
+imported.src = 'assets/helpers/helpers.js'
 document.head.appendChild(imported)
 
 var regions = ['CE', 'NO', 'SO', 'EA', 'WE']
@@ -29,10 +29,6 @@ $.ajax({
 
     var formatTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')
 
-    // set the ranges
-    var x = d3.scaleTime().range([0, width])
-    var y = d3.scaleLinear().range([height, 0])
-
     // format dataset -- timestamp and concentration
     for (var i = 0; i < dataset.length; i++) {
       var reading = dataset[i]
@@ -40,8 +36,15 @@ $.ajax({
       reading.concentration = +reading.concentration
     }
 
-    // create buttons
+    // set the ranges
+    var x = d3.scaleTime().range([0, width])
+    var y = d3.scaleLinear().range([height, 0])
 
+    // Scale the range of the data to the relevant axis
+    x.domain(d3.extent(dataset, function (d) { return d.timestamp })).nice(d3.timeDay, 1)
+    y.domain([0, d3.max(dataset, function (d) { return d.concentration })]).nice()
+
+    // create buttons
     for (var j = 0; j < regions.length; j++) {
       d3.select('body').append('button').text(regionDictionary[regions[j]])
         .attr('value', regions[j])
@@ -54,32 +57,28 @@ $.ajax({
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
-      var svg = d3.select('body').append('svg')
+      var lineChart = d3.select('body').append('svg')
               .attr('width', width + margin.left + margin.right)
               .attr('height', height + margin.top + margin.bottom)
               .append('g')
               .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 
   // add title to chart
-  svg.append("text")
-        .attr("x", (width / 2))
-        .attr("y", 0)
-        .attr("text-anchor", "middle")
-        .style("font-size", "20px")
-        .style("text-decoration", "underline")
-        .text("1-hour PM2.5 concentrations in Singapore");
+      lineChart.append('text')
+        .attr('x', (width / 2))
+        .attr('y', 0)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '20px')
+        .style('text-decoration', 'underline')
+        .text('1-hour PM2.5 concentrations in Singapore')
 
   // define the line
       var valueline = d3.line()
                     .x(function (d) { return x(d.timestamp) })
                     .y(function (d) { return y(d.concentration) })
 
-  // Scale the range of the data
-      x.domain(d3.extent(dataset, function (d) { return d.timestamp })).nice(d3.timeDay, 1)
-      y.domain([0, d3.max(dataset, function (d) { return d.concentration })]).nice() // make this nice
-
   // Add the valueline path.
-      svg.append('path')
+      lineChart.append('path')
       // .data([getRegionalData(dataset, 'WE')])
       .attr('class', 'line')
       .attr('d', valueline(getRegionalData(dataset, 'WE')))
@@ -87,12 +86,12 @@ $.ajax({
       // .data([getRegionalData(dataset, 'WE')]) is the same as .attr('d', valueline(getRegionalData(dataset, 'WE')))
 
     // Add the X Axis
-      svg.append('g')
+      lineChart.append('g')
         .attr('transform', 'translate(0,' + height + ')')
         .call(d3.axisBottom(x).ticks(d3.timeDay.every(1)))
 
     // Add the Y Axis
-      svg.append('g')
+      lineChart.append('g')
       .call(d3.axisLeft(y))
 
       for (var i = 0; i < regions.length; i++) {
@@ -105,8 +104,45 @@ $.ajax({
     drawChart()
 
     // make a circle
-    function drawCircles () {
+    function drawScatter () {
+      // this sets the concentration gradient for color (proxy for pm2.5 density)
+      var colorScale = d3.scaleLinear().domain([0, 100]).range(['#ffffff', '#2f4f4f'])
 
+      // create axes
+      var xAxis = d3.axisBottom(x)
+      var yAxis = d3.axisLeft(y)
+
+      // set container for scatterplot
+      var scatter = d3.select('body').append('svg')
+                  .attr('width', width + margin.left + margin.right)
+                  .attr('height', height + margin.top + margin.bottom)
+                  .append('g')
+                  .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+
+      scatter.append('g')
+              .call(xAxis)
+              .attr('transform', 'translate(0,' + height + ')')
+
+      scatter.append('g')
+              .call(yAxis)
+
+      scatter.selectAll('.dot')
+              .data(getRegionalData(dataset, 'SO'))
+              .enter().append('circle')
+              .attr('class', 'dot')
+              .attr('r', function (d) { return d.concentration / 10 })
+              .attr('cx', function (d) {
+                console.log(d)
+                return x(d.timestamp)
+              })
+              .attr('cy', function (d) { return y(d.concentration) })
+              .style('fill', function (d) { return colorScale(d.concentration) })
+
+      d3.selectAll('.dot').on('mouseover', function (d) {
+        console.log(d)
+      })
     }
+
+    drawScatter()
   }
 })
