@@ -44,16 +44,20 @@ $.ajax({
     x.domain(d3.extent(dataset, function (d) { return d.timestamp })).nice(d3.timeDay, 1)
     y.domain([0, d3.max(dataset, function (d) { return d.concentration })]).nice()
 
+    // create axes
+    var xAxis = d3.axisBottom(x)
+    var yAxis = d3.axisLeft(y)
+
     // create buttons
     for (var j = 0; j < regions.length; j++) {
-      d3.select('body').append('button').text(regionDictionary[regions[j]])
+      d3.select('.regionSelect').append('button').text(regionDictionary[regions[j]])
         .attr('value', regions[j])
         .attr('id', regions[j])
         .data([getRegionalData(dataset, regions[j])])
     }
 
     // draw chart
-    function drawChart () {
+    function drawCharts () {
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
@@ -88,29 +92,14 @@ $.ajax({
     // Add the X Axis
       lineChart.append('g')
         .attr('transform', 'translate(0,' + height + ')')
-        .call(d3.axisBottom(x).ticks(d3.timeDay.every(1)))
+        .call(xAxis)
 
     // Add the Y Axis
       lineChart.append('g')
-      .call(d3.axisLeft(y))
+      .call(yAxis)
 
-      for (var i = 0; i < regions.length; i++) {
-        d3.select('#' + regions[i]).on('click', function (datum) {
-          d3.select('path').attr('d', valueline(datum))
-        })
-      }
-    }
-
-    drawChart()
-
-    // make a circle
-    function drawScatter () {
       // this sets the concentration gradient for color (proxy for pm2.5 density)
       var colorScale = d3.scaleLinear().domain([0, 100]).range(['#ffffff', '#2f4f4f'])
-
-      // create axes
-      var xAxis = d3.axisBottom(x)
-      var yAxis = d3.axisLeft(y)
 
       // set container for scatterplot
       var scatter = d3.select('body').append('svg')
@@ -127,22 +116,27 @@ $.ajax({
               .call(yAxis)
 
       scatter.selectAll('.dot')
-              .data(getRegionalData(dataset, 'SO'))
+              .data(getRegionalData(dataset, 'WE'))
               .enter().append('circle')
               .attr('class', 'dot')
               .attr('r', function (d) { return d.concentration / 10 })
-              .attr('cx', function (d) {
-                console.log(d)
-                return x(d.timestamp)
-              })
+              .attr('cx', function (d) { return x(d.timestamp) })
               .attr('cy', function (d) { return y(d.concentration) })
               .style('fill', function (d) { return colorScale(d.concentration) })
 
-      d3.selectAll('.dot').on('mouseover', function (d) {
-        console.log(d)
-      })
+      for (var i = 0; i < regions.length; i++) {
+        d3.select('#' + regions[i]).on('click', function (datum) {
+          d3.select('path').attr('d', valueline(datum))
+
+          d3.selectAll('circle').data(datum).transition()
+              .attr('r', function (d) { return d.concentration / 10 })
+              .attr('cx', function (d) { return x(d.timestamp) })
+              .attr('cy', function (d) { return y(d.concentration) })
+        })
+      }
     }
 
-    drawScatter()
+    drawCharts()
+
   }
 })
