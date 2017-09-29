@@ -119,7 +119,8 @@ $.ajax({
               .data(getRegionalData(dataset, 'WE'))
               .enter().append('circle')
               .attr('class', 'dot')
-              .attr('r', function (d) { return d.concentration / 10 })
+              // .attr('r', function (d) { return d.concentration / 8 })
+              .attr('r', 4)
               .attr('cx', function (d) { return x(d.timestamp) })
               .attr('cy', function (d) { return y(d.concentration) })
               .style('fill', function (d) { return colorScale(d.concentration) })
@@ -129,7 +130,7 @@ $.ajax({
           d3.select('path').attr('d', valueline(datum))
 
           d3.selectAll('circle').data(datum).transition()
-              .attr('r', function (d) { return d.concentration / 10 })
+              .attr('r', function (d) { return d.concentration / 8 })
               .attr('cx', function (d) { return x(d.timestamp) })
               .attr('cy', function (d) { return y(d.concentration) })
         })
