@@ -119,8 +119,8 @@ $.ajax({
               .data(getRegionalData(dataset, 'WE'))
               .enter().append('circle')
               .attr('class', 'dot')
-              // .attr('r', function (d) { return d.concentration / 8 })
-              .attr('r', 4)
+              .attr('r', function (d) { return d.concentration / 8 })
+              // .attr('r', 4)
               .attr('cx', function (d) { return x(d.timestamp) })
               .attr('cy', function (d) { return y(d.concentration) })
               .style('fill', function (d) { return colorScale(d.concentration) })
@@ -139,5 +139,60 @@ $.ajax({
 
     drawCharts()
 
+    function drawPSIclock () {
+      var sampleData = getRegionalData(dataset, 'WE').slice(-12)
+      // var sampleData = [1, 1, 2, 3, 5, 8, 13, 21]
+      sampleData[0].concentration = null
+      console.log(sampleData);
+      // console.log(sampleData[1].timestamp.getHours() % 12)
+
+      var width = 960
+      var height = 500
+      var radius = height / 2 - 10
+
+      var color = d3.scaleLinear().domain([0, 100]).range(['#ffffff', '#2f4f4f'])
+      // var color = d3.scale.category10();
+
+      var arc = d3.arc()
+                  .innerRadius(radius - 40)
+                  .outerRadius(radius)
+
+      var pie = d3.pie()
+                .padAngle(0.02)
+                .value(function (d) { return Math.PI / 6 })
+                .sort(function (a, b) {
+                  // console.log(a.timestamp.getHours())
+                  return a.timestamp.getHours() - b.timestamp.getHours()
+                })
+
+      var psiClock = d3.select('body').append('svg')
+                        .attr('width', width)
+                        .attr('height', height)
+                        .append('g')
+                        .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')')
+
+      psiClock.selectAll('path')
+                .data(pie(sampleData))
+                .enter().append('path')
+                .style('fill', function (d, i) {
+                   return color(d.data.concentration)
+                 })
+                .attr('d', arc)
+
+      psiClock.selectAll('text')
+              .data(pie(sampleData))
+              .enter()
+              .append('text')
+              .each(function (d) {
+                var centroid = arc.centroid(d)
+                d3.select(this)
+                  .attr('x', centroid[0])
+                  .attr('y', centroid[1])
+                  .attr('dy', '0.33em')
+                  .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ', ' + d.data.concentration)
+              })
+    }
+
+    drawPSIclock()
   }
 })
