@@ -50,7 +50,9 @@ $.ajax({
 
     // create buttons
     for (var j = 0; j < regions.length; j++) {
-      d3.select('.regionSelect').append('button').text(regionDictionary[regions[j]])
+      d3.select('.regionSelect')
+        .append('button')
+        .text(regionDictionary[regions[j]])
         .attr('value', regions[j])
         .attr('id', regions[j])
         .data([getRegionalData(dataset, regions[j])])
@@ -61,33 +63,31 @@ $.ajax({
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
-      var lineChart = d3.select('body').append('svg')
-              .attr('width', width + margin.left + margin.right)
-              .attr('height', height + margin.top + margin.bottom)
-              .append('g')
-              .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+      var lineChart = d3.select('body')
+                        .append('svg')
+                        .attr('width', width + margin.left + margin.right)
+                        .attr('height', height + margin.top + margin.bottom)
+                        .append('g')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 
   // add title to chart
       lineChart.append('text')
-        .attr('x', (width / 2))
-        .attr('y', 0)
-        .attr('text-anchor', 'middle')
-        .style('font-size', '20px')
-        .style('text-decoration', 'underline')
-        .text('1-hour PM2.5 concentrations in Singapore')
+                .attr('x', (width / 2))
+                .attr('y', 0)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '20px')
+                .style('text-decoration', 'underline')
+                .text('1-hour PM2.5 concentrations in Singapore')
 
   // define the line
       var valueline = d3.line()
-                    .x(function (d) { return x(d.timestamp) })
-                    .y(function (d) { return y(d.concentration) })
+                        .x(function (d) { return x(d.timestamp) })
+                        .y(function (d) { return y(d.concentration) })
 
   // Add the valueline path.
       lineChart.append('path')
-      // .data([getRegionalData(dataset, 'WE')])
-      .attr('class', 'line')
-      .attr('d', valueline(getRegionalData(dataset, 'WE')))
-
-      // .data([getRegionalData(dataset, 'WE')]) is the same as .attr('d', valueline(getRegionalData(dataset, 'WE')))
+                .attr('class', 'line')
+                .attr('d', valueline(getRegionalData(dataset, 'WE')))
 
     // Add the X Axis
       lineChart.append('g')
@@ -99,14 +99,15 @@ $.ajax({
       .call(yAxis)
 
       // this sets the concentration gradient for color (proxy for pm2.5 density)
-      var colorScale = d3.scaleLinear().domain([0, 100]).range(['#ffffff', '#2f4f4f'])
+      var colorScale = d3.scaleLinear().domain([0, 500]).range(['#ffffff', '#000000'])
 
       // set container for scatterplot
-      var scatter = d3.select('body').append('svg')
-                  .attr('width', width + margin.left + margin.right)
-                  .attr('height', height + margin.top + margin.bottom)
-                  .append('g')
-                  .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+      var scatter = d3.select('body')
+                      .append('svg')
+                      .attr('width', width + margin.left + margin.right)
+                      .attr('height', height + margin.top + margin.bottom)
+                      .append('g')
+                      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 
       scatter.append('g')
               .call(xAxis)
@@ -125,14 +126,93 @@ $.ajax({
               .attr('cy', function (d) { return y(d.concentration) })
               .style('fill', function (d) { return colorScale(d.concentration) })
 
+      // draw psiClock
+      var sampleData = getRegionalData(dataset, 'WE').slice(-12)
+      sampleData[0].concentration = null
+      var radius = height / 2 - 10
+
+      var arc = d3.arc()
+                  .innerRadius(radius - 40)
+                  .outerRadius(radius)
+
+      var pie = d3.pie()
+                  .padAngle(0.02)
+                  .value(function (d) { return Math.PI / 6 })
+                  .sort(function (a, b) {
+                    return a.timestamp.getHours() % 12 - b.timestamp.getHours() % 12
+                  })
+
+      var psiClock = d3.select('body')
+                        .append('svg')
+                        .attr('width', width)
+                        .attr('height', height)
+                        .attr('class', 'psiClock')
+                        .append('g')
+                        .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')')
+
+      psiClock.selectAll('path')
+                .data(pie(sampleData))
+                .enter().append('path')
+                .style('fill', function (d, i) {
+                  return colorScale(d.data.concentration)
+                })
+                .attr('d', arc)
+                // .attr('class', 'arc')
+                .each(function (d) {
+                  if (d.index === sampleData.length - 1) {
+                    d3.select(this)
+                      .attr('class', 'last')
+                  }
+                })
+
+      psiClock.selectAll('text')
+              .data(pie(sampleData))
+              .enter()
+              .append('text')
+              .each(function (d) {
+                var centroid = arc.centroid(d)
+                d3.select(this)
+                  .attr('x', centroid[0])
+                  .attr('y', centroid[1])
+                  .attr('dy', '0.33em')
+                  .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ' o\'clock, ' + d.data.concentration)
+              })
+              .attr('class', 'clockIndicators')
+
       for (var i = 0; i < regions.length; i++) {
         d3.select('#' + regions[i]).on('click', function (datum) {
-          d3.select('path').attr('d', valueline(datum))
+          var halfDayData = datum.slice(-12)
+          halfDayData[0].concentration = null
+          d3.select('.line').transition().attr('d', valueline(datum))
 
           d3.selectAll('circle').data(datum).transition()
-              .attr('r', function (d) { return d.concentration / 8 })
-              .attr('cx', function (d) { return x(d.timestamp) })
-              .attr('cy', function (d) { return y(d.concentration) })
+                      .attr('r', function (d) { return d.concentration / 8 })
+                      .attr('cx', function (d) { return x(d.timestamp) })
+                      .attr('cy', function (d) { return y(d.concentration) })
+
+          d3.selectAll('.arc').data(pie(halfDayData))
+            .attr('d', arc)
+            .transition()
+            .style('fill', function (d, i) {
+              return colorScale(d.data.concentration)
+            })
+            .each(function (d) {
+              if (d.index === halfDayData.length - 1) {
+                d3.select(this)
+                  .attr('class', 'last')
+              }
+            })
+
+          d3.selectAll('.clockIndicators').data(pie(halfDayData)).transition()
+            .each(function (d) {
+              var centroid = arc.centroid(d)
+              d3.select(this)
+                .attr('x', centroid[0])
+                .attr('y', centroid[1])
+                .attr('dy', '0.33em')
+                .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ' o\'clock, ' + d.data.concentration)
+            })
+            // .attr('class', 'clockIndicators')
         })
       }
     }
@@ -141,17 +221,13 @@ $.ajax({
 
     function drawPSIclock () {
       var sampleData = getRegionalData(dataset, 'WE').slice(-12)
-      // var sampleData = [1, 1, 2, 3, 5, 8, 13, 21]
       sampleData[0].concentration = null
-      console.log(sampleData);
-      // console.log(sampleData[1].timestamp.getHours() % 12)
 
       var width = 960
       var height = 500
       var radius = height / 2 - 10
 
-      var color = d3.scaleLinear().domain([0, 100]).range(['#ffffff', '#2f4f4f'])
-      // var color = d3.scale.category10();
+      var color = d3.scaleLinear().domain([0, 500]).range(['#ffffff', '#000000'])
 
       var arc = d3.arc()
                   .innerRadius(radius - 40)
@@ -161,8 +237,7 @@ $.ajax({
                 .padAngle(0.02)
                 .value(function (d) { return Math.PI / 6 })
                 .sort(function (a, b) {
-                  // console.log(a.timestamp.getHours())
-                  return a.timestamp.getHours() - b.timestamp.getHours()
+                  return a.timestamp.getHours() % 12 - b.timestamp.getHours() % 12
                 })
 
       var psiClock = d3.select('body').append('svg')
@@ -175,9 +250,10 @@ $.ajax({
                 .data(pie(sampleData))
                 .enter().append('path')
                 .style('fill', function (d, i) {
-                   return color(d.data.concentration)
-                 })
+                  return color(d.data.concentration)
+                })
                 .attr('d', arc)
+                // .attr('class', 'arc')
 
       psiClock.selectAll('text')
               .data(pie(sampleData))
@@ -189,10 +265,10 @@ $.ajax({
                   .attr('x', centroid[0])
                   .attr('y', centroid[1])
                   .attr('dy', '0.33em')
-                  .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ', ' + d.data.concentration)
+                  .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ' o\'clock, ' + d.data.concentration)
               })
     }
 
-    drawPSIclock()
+    // drawPSIclock()
   }
 })
