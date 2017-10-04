@@ -102,29 +102,29 @@ $.ajax({
       var colorScale = d3.scaleLinear().domain([0, 500]).range(['#ffffff', '#000000'])
 
       // set container for scatterplot
-      var scatter = d3.select('body')
-                      .append('svg')
-                      .attr('width', width + margin.left + margin.right)
-                      .attr('height', height + margin.top + margin.bottom)
-                      .append('g')
-                      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-
-      scatter.append('g')
-              .call(xAxis)
-              .attr('transform', 'translate(0,' + height + ')')
-
-      scatter.append('g')
-              .call(yAxis)
-
-      scatter.selectAll('.dot')
-              .data(getRegionalData(dataset, 'WE'))
-              .enter().append('circle')
-              .attr('class', 'dot')
-              .attr('r', function (d) { return d.concentration / 8 })
-              // .attr('r', 4)
-              .attr('cx', function (d) { return x(d.timestamp) })
-              .attr('cy', function (d) { return y(d.concentration) })
-              .style('fill', function (d) { return colorScale(d.concentration) })
+      // var scatter = d3.select('body')
+      //                 .append('svg')
+      //                 .attr('width', width + margin.left + margin.right)
+      //                 .attr('height', height + margin.top + margin.bottom)
+      //                 .append('g')
+      //                 .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+      //
+      // scatter.append('g')
+      //         .call(xAxis)
+      //         .attr('transform', 'translate(0,' + height + ')')
+      //
+      // scatter.append('g')
+      //         .call(yAxis)
+      //
+      // scatter.selectAll('.dot')
+      //         .data(getRegionalData(dataset, 'WE'))
+      //         .enter().append('circle')
+      //         .attr('class', 'dot')
+      //         .attr('r', function (d) { return d.concentration / 8 })
+      //         // .attr('r', 4)
+      //         .attr('cx', function (d) { return x(d.timestamp) })
+      //         .attr('cy', function (d) { return y(d.concentration) })
+      //         .style('fill', function (d) { return colorScale(d.concentration) })
 
       // draw psiClock
       var sampleData = getRegionalData(dataset, 'WE').slice(-12)
@@ -157,9 +157,10 @@ $.ajax({
                   return colorScale(d.data.concentration)
                 })
                 .attr('d', arc)
-                // .attr('class', 'arc')
+                .attr('class', 'arc')
                 .each(function (d) {
-                  if (d.index === sampleData.length - 1) {
+                  var mostRecentRecord = pie(sampleData)[sampleData.length - 1]
+                  if (d.index === mostRecentRecord.index) {
                     d3.select(this)
                       .attr('class', 'last')
                   }
@@ -197,7 +198,8 @@ $.ajax({
               return colorScale(d.data.concentration)
             })
             .each(function (d) {
-              if (d.index === halfDayData.length - 1) {
+              var mostRecentRecord = pie(sampleData)[sampleData.length - 1]
+              if (d.index === mostRecentRecord.index) {
                 d3.select(this)
                   .attr('class', 'last')
               }
@@ -212,7 +214,6 @@ $.ajax({
                 .attr('dy', '0.33em')
                 .text((d.data.timestamp.getHours() % 12 === 0 ? 12 : d.data.timestamp.getHours() % 12) + ' o\'clock, ' + d.data.concentration)
             })
-            // .attr('class', 'clockIndicators')
         })
       }
     }
