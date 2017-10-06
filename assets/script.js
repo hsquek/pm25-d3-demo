@@ -128,7 +128,6 @@ $.ajax({
 
       // draw psiClock
       var sampleData = getRegionalData(dataset, 'WE').slice(-12)
-      sampleData[0].concentration = null
       var radius = height / 2 - 10
 
       var arc = d3.arc()
@@ -154,6 +153,9 @@ $.ajax({
                 .data(pie(sampleData))
                 .enter().append('path')
                 .style('fill', function (d, i) {
+                  if (i === 0) {
+                    return colorScale(0)
+                  }
                   return colorScale(d.data.concentration)
                 })
                 .attr('d', arc)
@@ -183,7 +185,6 @@ $.ajax({
       for (var i = 0; i < regions.length; i++) {
         d3.select('#' + regions[i]).on('click', function (datum) {
           var halfDayData = datum.slice(-12)
-          halfDayData[0].concentration = null
           d3.select('.line').transition().attr('d', valueline(datum))
 
           d3.selectAll('circle').data(datum).transition()
@@ -195,6 +196,9 @@ $.ajax({
             .attr('d', arc)
             .transition()
             .style('fill', function (d, i) {
+              if (i === 0) {
+                return colorScale(0)
+              }
               return colorScale(d.data.concentration)
             })
             .each(function (d) {
